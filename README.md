@@ -1,13 +1,26 @@
-# Sleep Cycle Calculator
+# ZEEROZ AI STUDIO
 
-This repository was intended for a simple sleep-cycle calculator, but it does not currently contain an `index.html` or application JavaScript file. There is no working demo to link to yet.
+Standalone source repository for the Zeeroz lesson video creator.
 
-## Next step
+## Public application
+https://gahejodev.github.io/zeeroz-ai-studio/
 
-Add the calculator page and its calculation logic, test it in a browser, and then update this README with the actual features and live demo URL.
+## Academy integration
+- Firebase Authentication: existing Zeeroz Academy Firebase project.
+- Access control: Firebase custom claim `admin: true`.
+- Course registry and lesson packages: read from the Zeeroz Academy public course library.
+- The Academy remains independent; this Studio is deployed as a separate application.
 
-I will only describe features here once they are implemented and checked.
+## Included
+- Course, chapter and lesson picker
+- Storyboard and narration editor
+- Interactive procedural 3D Biology scenes
+- Browser-based Urdu Piper neural voice
+- 3D avatar lip-sync preview
+- WebM video export
 
-## Planned stack
+## Honest capability notes
+The avatar currently uses an open-source face/shoulders character, not a custom full-body Zeeroz teacher. Biology models are a procedural pilot, not a general-purpose automatic 3D animation generator. Urdu neural voice is integrated; a verified local Sindhi neural voice model is not yet included. MP4 conversion and direct YouTube publishing are not included.
 
-HTML, CSS and JavaScript.
+## Security
+Firebase browser configuration is public by design. Admin authorization relies on Firebase Authentication custom claims and must also be enforced by Firebase security rules. Never commit service-account keys, private API tokens, or passwords.
