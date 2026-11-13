@@ -276,9 +276,9 @@ async function ensureTeacherClassroom(){
   const host=$("classroomPreviewCanvas");if(!host)throw new Error("Classroom preview host is missing.");
   const mod=await import("./teacher-classroom-3d.js?v=teacher-engine-2");
   teacherClassroom=await mod.createTeacherClassroom(host);
-  avatarStatus("Real 3D classroom teacher loaded. Select a lesson and generate its storyboard.");
+  const note=$("classroomPreviewStatus");if(note)note.textContent="Real 3D classroom and rigged male presenter loaded.";
   return teacherClassroom;
- })().catch(e=>{teacherClassroomLoading=null;const el=$("classroomPreviewStatus");if(el)el.textContent="3D teacher loading failed: "+e.message;throw e});
+ })().catch(e=>{teacherClassroomLoading=null;const el=$("classroomPreviewStatus");if(el)el.textContent="3D teacher loading failed: "+e.message;avatarStatus("3D classroom unavailable: "+e.message);throw e});
  return teacherClassroomLoading;
 }
 async function startClassroomPreview(){
@@ -292,7 +292,7 @@ async function startClassroomPreview(){
    raf=requestAnimationFrame(frame);
   };
   frame();window.addEventListener("beforeunload",()=>{cancelAnimationFrame(raf);engine.dispose()},{once:true});
- }catch(e){avatarStatus("3D classroom is unavailable: "+e.message)}
+ }catch(e){const note=$("classroomPreviewStatus");if(note)note.textContent="3D classroom is unavailable: "+e.message;avatarStatus("3D classroom is unavailable: "+e.message)}
 }
 startClassroomPreview();
 
