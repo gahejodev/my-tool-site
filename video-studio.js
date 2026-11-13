@@ -274,7 +274,7 @@ async function ensureTeacherClassroom(){
  if(teacherClassroomLoading)return teacherClassroomLoading;
  teacherClassroomLoading=(async()=>{
   const host=$("classroomPreviewCanvas");if(!host)throw new Error("Classroom preview host is missing.");
-  const mod=await import("./teacher-classroom-3d.js?v=teacher-engine-1");
+  const mod=await import("./teacher-classroom-3d.js?v=teacher-engine-2");
   teacherClassroom=await mod.createTeacherClassroom(host);
   avatarStatus("Real 3D classroom teacher loaded. Select a lesson and generate its storyboard.");
   return teacherClassroom;
