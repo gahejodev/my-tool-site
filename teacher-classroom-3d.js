@@ -10,7 +10,7 @@ export async function createTeacherClassroom(container){
  renderer.domElement.style.cssText="display:block;width:100%;height:auto;aspect-ratio:16/9;border-radius:11px;background:#dce6ec";
  container.replaceChildren(renderer.domElement);
  const scene=new THREE.Scene();scene.background=new THREE.Color(0xd9e5e9);scene.fog=new THREE.Fog(0xd9e5e9,13,28);
- const camera=new THREE.PerspectiveCamera(36,16/9,.1,60);camera.position.set(0,2.55,10.8);camera.lookAt(0,1.55,-.4);
+ const camera=new THREE.PerspectiveCamera(36,16/9,.1,60);camera.position.set(0,2.45,9.2);camera.lookAt(0,1.55,-.4);
  scene.add(new THREE.HemisphereLight(0xe9f4ff,0x756b5d,2.1));
  const key=new THREE.DirectionalLight(0xfff2dc,3.2);key.position.set(-3,7,5);key.castShadow=true;key.shadow.mapSize.set(2048,2048);key.shadow.camera.left=-8;key.shadow.camera.right=8;key.shadow.camera.top=8;key.shadow.camera.bottom=-4;scene.add(key);
  const fill=new THREE.DirectionalLight(0xc4dcff,1.35);fill.position.set(5,4,3);scene.add(fill);
@@ -60,7 +60,7 @@ export async function createTeacherClassroom(container){
  for(const x of [-4,0,4]){const lamp=new THREE.Mesh(new THREE.BoxGeometry(1.2,.07,.45),new THREE.MeshStandardMaterial({color:0xfff5d9,emissive:0xffe1a3,emissiveIntensity:.65}));lamp.position.set(x,6.78,-1.8);scene.add(lamp)}
  // Load a real, textured, full-body rigged male human (CC0 model).
  const loader=new GLTFLoader();
- const modelUrl="https://grab3d.com/dl/man-base-character-rigged/man-base-character-rigged.glb";
+ const modelUrl="https://grab3d.com/dl/businessman-rigged/businessman-rigged.glb";
  let gltf;
  try{gltf=await new Promise((resolve,reject)=>loader.load(modelUrl,resolve,undefined,reject))}
  catch(error){throw new Error("Rigged male teacher model could not be downloaded. The model host may block this browser (CORS/network). "+(error?.message||""))}
@@ -69,14 +69,7 @@ export async function createTeacherClassroom(container){
  const bounds=new THREE.Box3().setFromObject(model);const size=bounds.getSize(new THREE.Vector3());const center=bounds.getCenter(new THREE.Vector3());
  const factor=1.86/Math.max(size.y,.01);model.scale.setScalar(factor);model.position.set(-center.x*factor,-bounds.min.y*factor,-center.z*factor);
  teacher.add(model);teacher.position.set(-1.65,0,.15);teacher.rotation.y=.08;
- // Put a professional navy jacket-like outer layer over the neutral base mesh.
- // A tailored jacket silhouette is built in 3D and follows the upper torso.
- const jacketMat=mat(0x243b59,.68),shirtMat=mat(0xf0eee6,.72);
- const jacket=new THREE.Mesh(new THREE.CapsuleGeometry(.39,.56,6,12),jacketMat);jacket.position.set(0,1.16,0);jacket.scale.set(1.03,.9,.68);jacket.castShadow=true;teacher.add(jacket);
- const shirt=new THREE.Mesh(new THREE.BoxGeometry(.22,.64,.055),shirtMat);shirt.position.set(0,1.16,.275);teacher.add(shirt);
- // Tie.
- const tie=new THREE.Mesh(new THREE.ConeGeometry(.075,.58,5),mat(0x9a473b));tie.position.set(0,1.0,.32);tie.rotation.x=Math.PI;teacher.add(tie);
- // Bone and face controls for subtle natural teaching gestures.
+ // The selected rigged character already wears a detailed professional three-piece suit.\n // Bone and face controls for subtle natural teaching gestures.
  const bones=[];const morphs=[];model.traverse(o=>{if(o.isBone){const n=o.name.toLowerCase();if(/arm|shoulder|elbow|jaw|head|spine|neck/.test(n))bones.push({bone:o,name:n,base:o.rotation.clone()})}if(o.isMesh&&o.morphTargetDictionary&&o.morphTargetInfluences){for(const [name,index] of Object.entries(o.morphTargetDictionary))if(/jawopen|mouthopen|viseme_aa|mouth_a/i.test(name))morphs.push({mesh:o,index})}});
  const findBone=(pattern)=>bones.find(x=>pattern.test(x.name));
  const leftArm=findBone(/leftarm|arm_l|upperarm_l|mixamorig.*leftarm/),rightArm=findBone(/rightarm|arm_r|upperarm_r|mixamorig.*rightarm/),jaw=findBone(/jaw/),head=findBone(/head/);
