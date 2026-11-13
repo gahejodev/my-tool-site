@@ -297,13 +297,16 @@ async function exportReal3DTeacher(){
    const timeline=window.zeerozAudioTimeline||[];
    const active=timeline.find(t=>seconds>=t.start&&seconds<t.end);
    if(active)return {scene:scenes[active.index],index:active.index,progress:Math.max(0,Math.min(1,(seconds-active.start)/Math.max(.01,active.duration)))};
+   const previous=[...timeline].reverse().find(t=>seconds>=t.end);
+   if(previous)return {scene:scenes[previous.index],index:previous.index,progress:1};
+   if(timeline.length&&seconds<timeline[0].start)return {scene:scenes[0],index:0,progress:0};
    let remaining=Math.max(0,seconds),idx=0;
    for(let i=0;i<scenes.length;i++){const d=Math.max(1.5,audioBuffer.duration*Math.max(1,scenes[i].narration.length)/scenes.reduce((n,x)=>n+Math.max(1,x.narration.length),0));if(remaining<d)return {scene:scenes[i],index:i,progress:remaining/d};remaining-=d;idx=i}
    return {scene:scenes[idx]||{title,narration:"Welcome to Zeeroz Academy"},index:idx,progress:1};
   };
   const draw=()=>{
    const position=scenePositionAt(audioContext.currentTime-startedAt),sc=position.scene;
-   if(lesson3D&&sc.title!==lastExport3DScene){lesson3D.setScene(sc);lastExport3DScene=sc.title}
+   const sceneKey=sc.title+"|"+sc.narration;if(lesson3D&&sceneKey!==lastExport3DScene){lesson3D.setScene(sc);lastExport3DScene=sceneKey}
    lesson3D?.setProgress?.(position.progress);
    const w=1280,h=720,bg=ctx.createLinearGradient(0,0,w,h);bg.addColorStop(0,"#0d1835");bg.addColorStop(.55,"#172c58");bg.addColorStop(1,"#101b3d");
    ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
