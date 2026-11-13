@@ -354,6 +354,7 @@ async function exportReal3DTeacher(){
    const sceneKey=sc.title+"|"+sc.narration;if(lesson3D&&sceneKey!==lastExport3DScene){lesson3D.setScene(sc);lastExport3DScene=sceneKey}
    lesson3D?.setProgress?.(position.progress);
    const w=1280,h=720;analyser.getByteTimeDomainData(voiceSamples);let rms=0;for(let k=0;k<voiceSamples.length;k++){const v=(voiceSamples[k]-128)/128;rms+=v*v}const voiceLevel=Math.min(1,Math.sqrt(rms/voiceSamples.length)*3.5);
+   const subject3D=lesson3D?.renderer?.domElement;
    drawClassroomFrame(ctx,sc,audioContext.currentTime-startedAt,(audioContext.currentTime-startedAt)/Math.max(.01,audioBuffer.duration),w,h,subject3D,$("studioAvatarStyle")?.value||"male",voiceLevel);
    progress.style.width=Math.min(100,(audioContext.currentTime-startedAt)/audioBuffer.duration*100)+"%";
    raf=requestAnimationFrame(draw);
