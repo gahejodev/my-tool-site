@@ -268,16 +268,52 @@ async function generateLessonAudio(){
 $("ttsGenerate")?.addEventListener("click",()=>generateLessonAudio().catch(()=>{}));
 $("ttsStop")?.addEventListener("click",()=>{ttsGeneration++;ttsBusy=false;if(ttsButton)ttsButton.disabled=false;if(ttsAudio){ttsAudio.pause();ttsAudio.currentTime=0}ttsStatus.textContent="Audio generation/playback stopped.";});
 initStudioAvatar();
+function startClassroomPreview(){const canvas=$("classroomPreviewCanvas");if(!canvas)return;const ctx=canvas.getContext("2d");let raf=0;const frame=()=>{const sc=scenes[sceneIndex]||{title:window.currentLesson?.lesson?.title||"Your lesson",narration:"Generate the storyboard to see your lesson explained on the classroom whiteboard."};const subject=lesson3D?.renderer?.domElement;const idleVoice=Math.max(0,Math.sin(performance.now()/110)*.16);drawClassroomFrame(ctx,sc,performance.now()/1000,0,canvas.width,canvas.height,subject,$("studioAvatarStyle")?.value||"male",idleVoice);raf=requestAnimationFrame(frame)};frame();window.addEventListener("beforeunload",()=>cancelAnimationFrame(raf),{once:true})}
+startClassroomPreview();
 
-/* Record the real 3D avatar canvas together with the lesson narration. */
+
+/* Reusable classroom composition for preview and final video. */
+function drawWrapped(ctx,text,x,y,maxWidth,lineHeight,maxLines){
+ const words=String(text||"").split(/\s+/);let line="",row=0;
+ for(const word of words){const test=line?line+" "+word:word;if(ctx.measureText(test).width>maxWidth&&line){ctx.fillText(line,x,y+row*lineHeight);line=word;if(++row>=maxLines)return}else line=test}
+ if(line&&row<maxLines)ctx.fillText(line,x,y+row*lineHeight);
+}
+function drawClassroomFrame(ctx,scene,time,progress,w,h,subjectCanvas,gender="male",voiceLevel=0){
+ const sc=scene||{title:"Welcome to Zeeroz Academy",narration:"Learn with Zeeroz Academy"},female=gender==="female";
+ const bg=ctx.createLinearGradient(0,0,0,h);bg.addColorStop(0,"#dce9f5");bg.addColorStop(.72,"#f3eee2");bg.addColorStop(1,"#c8d3df");ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
+ ctx.fillStyle="#b7d8e9";ctx.fillRect(28,38,250,225);ctx.fillStyle="#f7fbff";ctx.fillRect(40,50,226,201);ctx.fillStyle="#a6c8da";ctx.fillRect(147,50,5,201);ctx.fillRect(40,148,226,5);ctx.fillStyle="rgba(255,255,255,.45)";ctx.fillRect(48,58,86,80);
+ ctx.fillStyle="#d4c8b3";ctx.fillRect(0,610,w,110);ctx.fillStyle="#b6a58f";ctx.fillRect(0,610,w,9);for(let x=0;x<w;x+=150){ctx.strokeStyle="rgba(95,83,69,.12)";ctx.beginPath();ctx.moveTo(x,620);ctx.lineTo(x-55,720);ctx.stroke()}
+ ctx.save();ctx.shadowColor="rgba(20,35,60,.25)";ctx.shadowBlur=18;ctx.shadowOffsetY=8;ctx.fillStyle="#8a6745";ctx.beginPath();ctx.roundRect(365,48,875,535,18);ctx.fill();ctx.restore();
+ const board=ctx.createLinearGradient(380,60,380,570);board.addColorStop(0,"#173e48");board.addColorStop(1,"#0d303b");ctx.fillStyle=board;ctx.beginPath();ctx.roundRect(380,62,845,500,10);ctx.fill();
+ ctx.fillStyle="#e9f3ed";ctx.font="700 16px system-ui";ctx.fillText("ZEEROZ ACADEMY  ·  CLASSROOM",410,98);ctx.fillStyle="#f6d878";ctx.font="700 32px system-ui";drawWrapped(ctx,sc.title||"Lesson",410,145,780,39,2);
+ if(subjectCanvas&&subjectCanvas.width&&subjectCanvas.height){ctx.save();ctx.beginPath();ctx.roundRect(420,190,765,270,12);ctx.clip();ctx.fillStyle="rgba(255,255,255,.045)";ctx.fillRect(420,190,765,270);try{const ratio=subjectCanvas.width/Math.max(1,subjectCanvas.height);let dw=750,dh=255;if(dw/dh>ratio)dw=dh*ratio;else dh=dw/ratio;ctx.drawImage(subjectCanvas,420+(750-dw)/2,198+(255-dh)/2,dw,dh)}catch(e){}ctx.restore()}
+ else{ctx.strokeStyle="#8dd7c3";ctx.lineWidth=4;ctx.beginPath();ctx.arc(800,325,78,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(800,245);ctx.lineTo(800,405);ctx.moveTo(720,325);ctx.lineTo(880,325);ctx.stroke();ctx.fillStyle="#e7f4ef";ctx.font="600 20px system-ui";ctx.fillText("Today's topic",700,445)}
+ ctx.fillStyle="#d8e8e1";ctx.font="19px system-ui";drawWrapped(ctx,(sc.narration||"Let's learn this topic step by step.").slice(0,230),415,500,775,25,2);
+ ctx.fillStyle="#b78c5d";ctx.fillRect(380,566,845,12);ctx.fillStyle="#f4f0df";ctx.fillRect(440,558,40,7);ctx.fillStyle="#e8d26e";ctx.fillRect(500,558,40,7);
+ ctx.fillStyle="rgba(35,48,62,.18)";ctx.beginPath();ctx.ellipse(210,640,135,23,0,0,Math.PI*2);ctx.fill();
+ const walk=Math.sin(time*2.4)*3,skin=ctx.createLinearGradient(125,0,290,0);skin.addColorStop(0,female?"#b9785e":"#a86d52");skin.addColorStop(.5,female?"#e5b493":"#d9a17e");skin.addColorStop(1,female?"#aa7059":"#9b634e");
+ ctx.fillStyle="#263a59";ctx.beginPath();ctx.roundRect(155,480+walk,48,135,18);ctx.fill();ctx.beginPath();ctx.roundRect(215,480-walk,48,135,18);ctx.fill();
+ ctx.fillStyle="#17263d";ctx.beginPath();ctx.ellipse(177,615+walk,42,16,-.05,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(239,615-walk,42,16,-.05,0,Math.PI*2);ctx.fill();
+ const coat=ctx.createLinearGradient(115,0,300,0);coat.addColorStop(0,female?"#6b3e70":"#233d67");coat.addColorStop(.5,female?"#9a5c8e":"#3b5e8c");coat.addColorStop(1,female?"#57365f":"#1c3155");
+ ctx.fillStyle=coat;ctx.beginPath();ctx.moveTo(145,305);ctx.quadraticCurveTo(205,270,270,305);ctx.lineTo(300,495);ctx.quadraticCurveTo(210,525,120,495);ctx.closePath();ctx.fill();
+ ctx.fillStyle="#f6f1e7";ctx.beginPath();ctx.moveTo(180,300);ctx.lineTo(210,350);ctx.lineTo(238,300);ctx.lineTo(226,480);ctx.lineTo(188,480);ctx.closePath();ctx.fill();
+ if(!female){ctx.fillStyle="#d8b65c";ctx.beginPath();ctx.moveTo(208,345);ctx.lineTo(223,355);ctx.lineTo(215,462);ctx.lineTo(204,462);ctx.lineTo(197,355);ctx.closePath();ctx.fill()}
+ const gesture=Math.sin(time*3.2)*.08;ctx.strokeStyle=coat;ctx.lineWidth=39;ctx.lineCap="round";ctx.beginPath();ctx.moveTo(145,335);ctx.lineTo(112,420);ctx.lineTo(130,475);ctx.stroke();ctx.beginPath();ctx.moveTo(265,335);ctx.lineTo(305,385);ctx.lineTo(365+Math.sin(time*2)*8,300+gesture*80);ctx.stroke();ctx.fillStyle=skin;ctx.beginPath();ctx.arc(365+Math.sin(time*2)*8,300+gesture*80,22,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle=skin;ctx.beginPath();ctx.roundRect(190,260,43,62,16);ctx.fill();ctx.beginPath();ctx.ellipse(211,211,68,82,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(145,216,13,22,0,0,Math.PI*2);ctx.ellipse(277,216,13,22,0,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle=female?"#251d2b":"#29252a";ctx.beginPath();ctx.ellipse(211,154,female?73:70,female?48:38,0,Math.PI,Math.PI*2);ctx.fill();if(female){ctx.fillRect(143,158,18,112);ctx.fillRect(261,158,18,112)}else{ctx.beginPath();ctx.moveTo(146,160);ctx.quadraticCurveTo(140,120,180,120);ctx.quadraticCurveTo(220,102,264,132);ctx.lineTo(276,178);ctx.quadraticCurveTo(240,148,210,162);ctx.quadraticCurveTo(178,145,146,178);ctx.fill()}
+ ctx.fillStyle="#352b2a";ctx.beginPath();ctx.ellipse(187,212,6,8,0,0,Math.PI*2);ctx.ellipse(235,212,6,8,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#8e5849";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(211,220);ctx.lineTo(205,239);ctx.lineTo(216,242);ctx.stroke();
+ ctx.strokeStyle="#85464b";ctx.lineWidth=4;ctx.beginPath();ctx.ellipse(211,258,Math.max(5,8+voiceLevel*20),Math.max(2,2+voiceLevel*9),0,0,Math.PI*2);ctx.stroke();
+ ctx.fillStyle="#10213e";ctx.beginPath();ctx.roundRect(75,665,275,34,10);ctx.fill();ctx.fillStyle="#fff";ctx.font="700 17px system-ui";ctx.textAlign="center";ctx.fillText(female?"ZEEROZ FEMALE TEACHER":"ZEEROZ MALE TEACHER",212,688);ctx.textAlign="left";
+ ctx.fillStyle="rgba(255,255,255,.24)";ctx.fillRect(380,700,845,6);ctx.fillStyle="#27c89a";ctx.fillRect(380,700,845*Math.max(0,Math.min(1,progress||0)),6);
+}
+
+/* Record the classroom composition with lesson narration. */
 async function exportReal3DTeacher(){
  const button=$("export3DVideo"),status3D=$("export3DStatus"),progress=$("export3DProgress");
  try{await initLesson3D()}catch(e){status3D.textContent="3D science model unavailable: "+e.message;return}
  const file=$("voiceTrack").files?.[0];
  if(!studioAvatar||!studioAvatarReady){status3D.textContent="3D teacher is not ready yet.";return}
  if(!file){status3D.textContent="Upload the complete narration audio first.";return}
- const avatarCanvas=$("studioAvatar").querySelector("canvas");
- if(!avatarCanvas){status3D.textContent="3D render canvas was not found. Refresh and try again.";return}
  if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream){status3D.textContent="This browser does not support video recording. Use the latest Chrome.";return}
  button.disabled=true;progress.style.width="0%";
  let audioContext=null,source=null,recorder=null,raf=0,recordStream=null;
@@ -312,28 +348,13 @@ async function exportReal3DTeacher(){
    for(let i=0;i<scenes.length;i++){const d=Math.max(1.5,audioBuffer.duration*Math.max(1,scenes[i].narration.length)/scenes.reduce((n,x)=>n+Math.max(1,x.narration.length),0));if(remaining<d)return {scene:scenes[i],index:i,progress:remaining/d};remaining-=d;idx=i}
    return {scene:scenes[idx]||{title,narration:"Welcome to Zeeroz Academy"},index:idx,progress:1};
   };
+  const analyser=audioContext.createAnalyser();analyser.fftSize=256;source.connect(analyser);const silentGain=audioContext.createGain();silentGain.gain.value=0;analyser.connect(silentGain);silentGain.connect(audioContext.destination);const voiceSamples=new Uint8Array(analyser.fftSize);
   const draw=()=>{
    const position=scenePositionAt(audioContext.currentTime-startedAt),sc=position.scene;
    const sceneKey=sc.title+"|"+sc.narration;if(lesson3D&&sceneKey!==lastExport3DScene){lesson3D.setScene(sc);lastExport3DScene=sceneKey}
    lesson3D?.setProgress?.(position.progress);
-   const w=1280,h=720,bg=ctx.createLinearGradient(0,0,w,h);bg.addColorStop(0,"#0d1835");bg.addColorStop(.55,"#172c58");bg.addColorStop(1,"#101b3d");
-   ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
-   ctx.fillStyle="rgba(255,255,255,.055)";ctx.beginPath();ctx.roundRect(18,22,365,676,24);ctx.fill();
-   try{const ratio=avatarCanvas.width/Math.max(1,avatarCanvas.height);let dw=335,dh=590;if(dw/dh>ratio)dw=dh*ratio;else dh=dw/ratio;ctx.drawImage(avatarCanvas,32+(335-dw)/2,42+(590-dh)/2,dw,dh)}catch(e){}
-   ctx.fillStyle="#ffffff";ctx.textAlign="center";ctx.font="bold 18px system-ui";ctx.fillText("ZEEROZ AI TEACHER",200,665);ctx.textAlign="left";
-   ctx.fillStyle="#f2ce60";ctx.font="bold 15px system-ui";ctx.fillText("ZEEROZ AI STUDIO",414,48);
-   ctx.fillStyle="#ffffff";ctx.font="bold 34px system-ui";
-   const wrap=(txt,x,y,max,lineH,maxLines)=>{const words=String(txt||"").split(/\s+/);let line="",count=0;for(const word of words){const test=line?line+" "+word:word;if(ctx.measureText(test).width>max&&line){ctx.fillText(line,x,y+count*lineH);line=word;if(++count>=maxLines)return}else line=test}if(line&&count<maxLines)ctx.fillText(line,x,y+count*lineH)};
-   wrap(sc.title,414,96,820,42,1);
-   ctx.fillStyle="rgba(255,255,255,.08)";ctx.beginPath();ctx.roundRect(405,120,855,445,20);ctx.fill();
-   const subject3D=lesson3D?.renderer?.domElement;
-   if(subject3D&&subject3D.width&&subject3D.height){ctx.save();ctx.beginPath();ctx.roundRect(414,129,837,427,15);ctx.clip();ctx.drawImage(subject3D,414,129,837,427);ctx.restore()}
-   const sceneImage=sceneImages[position.index];
-   if(!subject3D&&sceneImage){const scale=Math.min(810/sceneImage.width,405/sceneImage.height);ctx.drawImage(sceneImage,430,140,sceneImage.width*scale,sceneImage.height*scale)}
-   ctx.fillStyle="#e6edff";ctx.font="21px system-ui";wrap(sc.narration,416,605,825,29,2);
-   ctx.fillStyle="rgba(255,255,255,.16)";ctx.fillRect(414,672,830,7);ctx.fillStyle="#20c997";ctx.fillRect(414,672,830*Math.min(1,(audioContext.currentTime-startedAt)/audioBuffer.duration),7);
-   ctx.fillStyle="#d6e1f5";ctx.font="15px system-ui";ctx.fillText("SCENE "+(position.index+1)+" / "+Math.max(1,scenes.length),414,700);
-   ctx.textAlign="right";ctx.fillText("3D SCIENCE VISUAL",1245,700);ctx.textAlign="left";
+   const w=1280,h=720;analyser.getByteTimeDomainData(voiceSamples);let rms=0;for(let k=0;k<voiceSamples.length;k++){const v=(voiceSamples[k]-128)/128;rms+=v*v}const voiceLevel=Math.min(1,Math.sqrt(rms/voiceSamples.length)*3.5);
+   drawClassroomFrame(ctx,sc,audioContext.currentTime-startedAt,(audioContext.currentTime-startedAt)/Math.max(.01,audioBuffer.duration),w,h,subject3D,$("studioAvatarStyle")?.value||"male",voiceLevel);
    progress.style.width=Math.min(100,(audioContext.currentTime-startedAt)/audioBuffer.duration*100)+"%";
    raf=requestAnimationFrame(draw);
   };
