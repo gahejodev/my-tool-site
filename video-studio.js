@@ -206,11 +206,11 @@ async function getPiperVoiceEngine(engine,voiceId){
    config:"https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx.json"
   }
  };
- const selected=urls[voiceId];if(!selected)throw new Error("Unknown Urdu voice selected.");
+ const selected=urls[voiceId];if(!selected)throw new Error("Unknown neural voice selected.");
  ttsStatus.textContent="Selected neural voice model download ho raha hai (taqreeban 64 MB). Pehli dafa kuch waqt lag sakta hai…";
  const enginePromise=engine.createEngine(selected.model,selected.config,p=>{
-  if(p?.stage==="opening")ttsStatus.textContent="Urdu model 100% download ho gaya. Ab phone voice engine open kar raha hai — 64 MB model ko load hone mein waqt lag sakta hai; is stage par screen rukti hui lag sakti hai. Browser band na karein.";
-  else if(p?.stage==="ready")ttsStatus.textContent="Urdu voice engine ready. Ab narration generate ho rahi hai…";
+  if(p?.stage==="opening")ttsStatus.textContent="Voice model 100% download ho gaya. Ab phone voice engine open kar raha hai — 64 MB model ko load hone mein waqt lag sakta hai; is stage par screen rukti hui lag sakti hai. Browser band na karein.";
+  else if(p?.stage==="ready")ttsStatus.textContent="Neural voice engine ready. Ab narration generate ho rahi hai…";
   else if(p?.total)ttsStatus.textContent="Urdu model download: "+Math.round(p.loaded*100/p.total)+"%";
  });
  ttsEngineCache[voiceId]=enginePromise;
