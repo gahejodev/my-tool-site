@@ -268,7 +268,32 @@ async function generateLessonAudio(){
 $("ttsGenerate")?.addEventListener("click",()=>generateLessonAudio().catch(()=>{}));
 $("ttsStop")?.addEventListener("click",()=>{ttsGeneration++;ttsBusy=false;if(ttsButton)ttsButton.disabled=false;if(ttsAudio){ttsAudio.pause();ttsAudio.currentTime=0}ttsStatus.textContent="Audio generation/playback stopped.";});
 initStudioAvatar();
-function startClassroomPreview(){const canvas=$("classroomPreviewCanvas");if(!canvas)return;const ctx=canvas.getContext("2d");let raf=0;const frame=()=>{const sc=scenes[sceneIndex]||{title:window.currentLesson?.lesson?.title||"Your lesson",narration:"Generate the storyboard to see your lesson explained on the classroom whiteboard."};const subject=lesson3D?.renderer?.domElement;const idleVoice=Math.max(0,Math.sin(performance.now()/110)*.16);drawClassroomFrame(ctx,sc,performance.now()/1000,0,canvas.width,canvas.height,subject,$("studioAvatarStyle")?.value||"male",idleVoice);raf=requestAnimationFrame(frame)};frame();window.addEventListener("beforeunload",()=>cancelAnimationFrame(raf),{once:true})}
+let teacherClassroom=null,teacherClassroomLoading=null;
+async function ensureTeacherClassroom(){
+ if(teacherClassroom)return teacherClassroom;
+ if(teacherClassroomLoading)return teacherClassroomLoading;
+ teacherClassroomLoading=(async()=>{
+  const host=$("classroomPreviewCanvas");if(!host)throw new Error("Classroom preview host is missing.");
+  const mod=await import("./teacher-classroom-3d.js?v=teacher-engine-1");
+  teacherClassroom=await mod.createTeacherClassroom(host);
+  avatarStatus("Real 3D classroom teacher loaded. Select a lesson and generate its storyboard.");
+  return teacherClassroom;
+ })().catch(e=>{teacherClassroomLoading=null;const el=$("classroomPreviewStatus");if(el)el.textContent="3D teacher loading failed: "+e.message;throw e});
+ return teacherClassroomLoading;
+}
+async function startClassroomPreview(){
+ const host=$("classroomPreviewCanvas");if(!host)return;
+ try{
+  const engine=await ensureTeacherClassroom();let raf=0,lastKey="";
+  const frame=()=>{
+   const sc=scenes[sceneIndex]||{title:window.currentLesson?.lesson?.title||"Welcome to Zeeroz Academy",narration:"Your lesson will be displayed on the classroom whiteboard."};
+   const key=sc.title+"|"+sc.narration;if(key!==lastKey){engine.setScene(sc);lastKey=key}
+   engine.render(performance.now()/1000,Math.max(0,Math.sin(performance.now()/130)*.08),lesson3D?.renderer?.domElement);
+   raf=requestAnimationFrame(frame);
+  };
+  frame();window.addEventListener("beforeunload",()=>{cancelAnimationFrame(raf);engine.dispose()},{once:true});
+ }catch(e){avatarStatus("3D classroom is unavailable: "+e.message)}
+}
 startClassroomPreview();
 
 
@@ -310,9 +335,9 @@ function drawClassroomFrame(ctx,scene,time,progress,w,h,subjectCanvas,gender="ma
 /* Record the classroom composition with lesson narration. */
 async function exportReal3DTeacher(){
  const button=$("export3DVideo"),status3D=$("export3DStatus"),progress=$("export3DProgress");
- try{await initLesson3D()}catch(e){status3D.textContent="3D science model unavailable: "+e.message;return}
+ try{await ensureTeacherClassroom()}catch(e){status3D.textContent="Real 3D classroom could not load: "+e.message;return}
  const file=$("voiceTrack").files?.[0];
- if(!studioAvatar||!studioAvatarReady){status3D.textContent="3D teacher is not ready yet.";return}
+ if(!teacherClassroom){status3D.textContent="Real 3D teacher is not ready yet.";return}
  if(!file){status3D.textContent="Upload the complete narration audio first.";return}
  if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream){status3D.textContent="This browser does not support video recording. Use the latest Chrome.";return}
  button.disabled=true;progress.style.width="0%";
@@ -323,12 +348,10 @@ async function exportReal3DTeacher(){
   await audioContext.resume();
   const bytes=await file.arrayBuffer();
   const audioBuffer=await audioContext.decodeAudioData(bytes.slice(0));
-  const sceneImages=await Promise.all(scenes.map(s=>loadSceneImage(s.image)));
+  
   const sourceStream=audioContext.createMediaStreamDestination();
   source=audioContext.createBufferSource();source.buffer=audioBuffer;source.connect(sourceStream);
-  const out=document.createElement("canvas");out.width=1280;out.height=720;
-  const ctx=out.getContext("2d");
-  const videoStream=out.captureStream(25);recordStream=videoStream;
+  const videoStream=teacherClassroom.canvas.captureStream(25);recordStream=videoStream;
   sourceStream.stream.getAudioTracks().forEach(t=>videoStream.addTrack(t));
   const mime=["video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm"].find(x=>MediaRecorder.isTypeSupported(x));
   if(!mime)throw new Error("WebM recording format is unavailable in this browser.");
@@ -351,18 +374,16 @@ async function exportReal3DTeacher(){
   const analyser=audioContext.createAnalyser();analyser.fftSize=256;source.connect(analyser);const silentGain=audioContext.createGain();silentGain.gain.value=0;analyser.connect(silentGain);silentGain.connect(audioContext.destination);const voiceSamples=new Uint8Array(analyser.fftSize);
   const draw=()=>{
    const position=scenePositionAt(audioContext.currentTime-startedAt),sc=position.scene;
-   const sceneKey=sc.title+"|"+sc.narration;if(lesson3D&&sceneKey!==lastExport3DScene){lesson3D.setScene(sc);lastExport3DScene=sceneKey}
-   lesson3D?.setProgress?.(position.progress);
+   const sceneKey=sc.title+"|"+sc.narration;if(sceneKey!==lastExport3DScene){teacherClassroom.setScene(sc);lesson3D?.setScene?.(sc);lastExport3DScene=sceneKey}
+   teacherClassroom.setProgress(position.progress);
    const w=1280,h=720;analyser.getByteTimeDomainData(voiceSamples);let rms=0;for(let k=0;k<voiceSamples.length;k++){const v=(voiceSamples[k]-128)/128;rms+=v*v}const voiceLevel=Math.min(1,Math.sqrt(rms/voiceSamples.length)*3.5);
-   const subject3D=lesson3D?.renderer?.domElement;
-   drawClassroomFrame(ctx,sc,audioContext.currentTime-startedAt,(audioContext.currentTime-startedAt)/Math.max(.01,audioBuffer.duration),w,h,subject3D,$("studioAvatarStyle")?.value||"male",voiceLevel);
+   teacherClassroom.render(audioContext.currentTime-startedAt,voiceLevel,lesson3D?.renderer?.domElement);
    progress.style.width=Math.min(100,(audioContext.currentTime-startedAt)/audioBuffer.duration*100)+"%";
    raf=requestAnimationFrame(draw);
   };
   recorder.start(500);
-  lastExport3DScene="";lesson3D?.reset?.();
-  status3D.textContent="Recording the full-body classroom teacher, animated science board and lesson audio…";
-  await studioAvatar.attachStream(sourceStream.stream);
+  lastExport3DScene="";teacherClassroom.reset();lesson3D?.reset?.();
+  status3D.textContent="Recording the real 3D classroom, rigged male teacher and lesson audio…";
   const startedAt=audioContext.currentTime;
   source.onended=()=>{if(recorder&&recorder.state!=="inactive")recorder.stop()};
   source.start();
@@ -388,7 +409,7 @@ async function exportReal3DTeacher(){
   try{source?.stop()}catch(e){}
   recordStream?.getTracks().forEach(t=>t.stop());
   if(audioContext)await audioContext.close().catch(()=>{});
-  button.disabled=!studioAvatarReady||!$("voiceTrack").files?.[0];
+  button.disabled=!$("voiceTrack").files?.[0];
  }
 }
 
@@ -400,7 +421,7 @@ async function generateCompleteLessonVideo(){
  const button=$("generateCompleteVideo");
  if(!scenes.length){status("Pehle lesson select karke storyboard generate karein.");return}
  if($("language").value==="sd"){$("ttsStatus").textContent="Sindhi neural voice abhi verified nahi. Urdu ya English explanation select karein.";return}
- if(!studioAvatarReady||!studioAvatar){avatarStatus("3D teacher abhi load ho raha hai. Ready hone ke baad dobara try karein.");return}
+ try{await ensureTeacherClassroom()}catch(e){status("Real 3D teacher could not load: "+e.message);return}
  button.disabled=true;
  try{
   const previousGeneratedUrl=ttsAudioUrl;
@@ -418,5 +439,5 @@ async function generateCompleteLessonVideo(){
 }
 $("generateCompleteVideo")?.addEventListener("click",generateCompleteLessonVideo);
 
-$("voiceTrack")?.addEventListener("change",()=>{const b=$("export3DVideo");if(b)b.disabled=!studioAvatarReady||!$("voiceTrack").files?.[0]});
+$("voiceTrack")?.addEventListener("change",()=>{const b=$("export3DVideo");if(b)b.disabled=!$("voiceTrack").files?.[0]});
 window.addEventListener("beforeunload",()=>{if(studioAudioUrl)URL.revokeObjectURL(studioAudioUrl);try{studioAvatar?.dispose()}catch(e){}});
