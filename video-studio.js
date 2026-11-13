@@ -223,10 +223,10 @@ async function generateLessonAudio(){
  const lessonLanguage=$("language").value;if(lessonLanguage==="sd")throw new Error("Sindhi neural voice model abhi verified nahi. Filhal English ya Urdu lesson explanation select karein.");
  ttsBusy=true;ttsButton.disabled=true;const token=++ttsGeneration;let ttsPhase="initializing browser audio engine";
  try{
-  ttsPhase="loading Urdu phonemizer and ONNX runtime";
+  ttsPhase="loading browser phonemizer and ONNX runtime";
   const engine=await ensureUrduPiper();
   const voiceId=lessonLanguage==="ur"?($("ttsVoice").value==="female"?"ur_PK-aegis_female-medium":"ur_PK-fasih-medium"):($("ttsVoice").value==="female"?"en_US-amy-medium":"en_US-ryan-medium");
-  ttsPhase="opening the downloaded Urdu voice model in phone memory";
+  ttsPhase="opening the downloaded neural voice model in phone memory";
   const model=await getPiperVoiceEngine(engine,voiceId);
   // Synthesize storyboard scenes separately for exact audio-to-scene timing.
   const pcmParts=[],sceneTimeline=[],silence=new Float32Array(Math.round(model.sampleRate*.22));
@@ -256,11 +256,11 @@ async function generateLessonAudio(){
   if(ttsAudioUrl)URL.revokeObjectURL(ttsAudioUrl);
   ttsAudioUrl=URL.createObjectURL(wav);ttsAudio.src=ttsAudioUrl;ttsAudio.style.display="block";
   ttsDownload.href=ttsAudioUrl;ttsDownload.hidden=false;setGeneratedVoiceFile(wav);
-  ttsStatus.textContent=(lessonLanguage==="ur"?"Urdu":"English")+" audio ready! Audio player se sun sakte hain, ya Create full lesson video se lip-sync ke saath final video bana sakte hain.");
+  ttsStatus.textContent=(lessonLanguage==="ur"?"Urdu":"English")+" audio ready! Audio player se sun sakte hain, ya Create full lesson video se lip-sync ke saath final video bana sakte hain.";
   ttsAudio.pause();ttsAudio.currentTime=0;
  }catch(e){
   const detail=typeof e==="number"?"WASM/ONNX error code "+e:(e?.message||String(e));
-  console.error("[Zeeroz Urdu TTS]",{phase:ttsPhase,error:e,stack:e?.stack});
+  console.error("[Zeeroz neural TTS]",{phase:ttsPhase,error:e,stack:e?.stack});
   if(token===ttsGeneration)ttsStatus.textContent="Audio failed during "+ttsPhase+": "+detail+". Agar ye dobara aaye to ye exact stage/error share karein.";
   throw e;
  }finally{if(token===ttsGeneration){ttsBusy=false;ttsButton.disabled=false}}
