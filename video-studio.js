@@ -361,7 +361,7 @@ async function exportReal3DTeacher(){
   };
   recorder.start(500);
   lastExport3DScene="";lesson3D?.reset?.();
-  status3D.textContent="Starting synchronized 3D teacher, animated science scene and audio recording…";
+  status3D.textContent="Recording the full-body classroom teacher, animated science board and lesson audio…";
   await studioAvatar.attachStream(sourceStream.stream);
   const startedAt=audioContext.currentTime;
   source.onended=()=>{if(recorder&&recorder.state!=="inactive")recorder.stop()};
